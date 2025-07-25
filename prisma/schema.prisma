@@ -1,0 +1,748 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Source_Key_Map {
+  id              String @id @default(auto()) @map("_id") @db.ObjectId
+  ENDPOINT_SOURCE String
+  API_KEY         String
+  API_KEY_HASH    String
+  API_KEY_SALT    String
+  DOMAIN          String
+
+  @@map("Source_Key_Map") // table name in the database 
+}
+
+model Roles {
+  id                    String                  @id @default(auto()) @map("_id") @db.ObjectId
+  role                  String                  @unique
+  Roles_Actionables_Map Roles_Actionables_Map[]
+
+  @@map("Roles") // table name in the database 
+}
+
+model Actionables {
+  id                    String                  @id @default(auto()) @map("_id") @db.ObjectId
+  actionable            String
+  action                String
+  description           String
+  category              String
+  Roles_Actionables_Map Roles_Actionables_Map[]
+
+  @@map("Actionables") // table name in the database 
+}
+
+model Roles_Actionables_Map {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  Roles       Roles       @relation(fields: [Role], references: [id])
+  Actionables Actionables @relation(fields: [Action], references: [id])
+  Role        String
+  Action      String
+  Status      Boolean
+
+  @@map("Roles_Actionables_Map") // table name in the database 
+}
+
+model User {
+  id                     String                   @id @default(auto()) @map("_id") @db.ObjectId
+  username               String                   @unique
+  name                   String
+  email                  String                   @unique
+  managerId              String?                  @db.ObjectId
+  managerEmail           String?
+  role                   String
+  hash                   String
+  salt                   String
+  password               String
+  provider               String
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @default(now())
+  User_Verification_Info User_Verification_Info[]
+
+  IntimationsAsUser        Intimation[]        @relation(name: "UserDetailsRelation")
+  IntimationsAsSalesPerson Intimation[]        @relation(name: "SalesPersonRelation")
+  Visit_Information        Visit_Information[] @relation(name: "UserDetailsRelation")
+
+  @@map("User") // table name in the database 
+}
+
+model User_Verification_Info {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  User              User?    @relation(fields: [userId], references: [id])
+  userId            String?
+  IS_ACTIVE         Boolean
+  API_KEY           String
+  VERIFICATION_CODE String
+  CODE_EXPIRY       String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+
+  @@map("User_Verification_Info") // table name in the database 
+}
+
+model Auth {
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String?  @unique
+  access_token         String
+  refresh_token        String
+  access_token_expiry  String
+  refresh_token_expiry String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now())
+
+  @@map("Auth") // table name in the database 
+}
+
+model Session {
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String?  @unique
+  session_token        String
+  session_token_expiry String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now())
+
+  @@map("Session") // table name in the database 
+}
+
+model Hospital_Master {
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  NAME            String            @unique
+  CITY            String
+  STATE           String
+  PIN             String
+  ADDRESS1        String
+  ADDRESS2        String
+  LATLONG         String
+  IS_ACTIVE       Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+  Doctor_Master   Doctor_Master[]
+  Customer_Master Customer_Master[]
+
+  @@map("Hospital_Master") // table name in the database 
+}
+
+model Doctor_Master {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  FIRST_NAME      String
+  LAST_NAME       String
+  DESIGNATION     String
+  Hospital_Master Hospital_Master @relation(fields: [HOSPITAL_ID], references: [id])
+  HOSPITAL_ID     String
+  IS_ACTIVE       Boolean         @default(true)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+  Customer_Master Customer_Master[]
+
+  @@map("Doctor_Master") // table name in the database 
+}
+
+model SalesSPOC_Master {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  FIRST_NAME String
+  LAST_NAME  String
+  EMAIL      String  @unique
+  CONTACT    String  @unique
+  IS_ACTIVE  Boolean @default(true)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+  Customer_Master Customer_Master[]
+
+  @@map("SalesSPOC_Master") // table name in the database 
+}
+
+model Customer_Master {
+  id                String           @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID            String           @unique
+  FIRST_NAME        String
+  LAST_NAME         String
+  GENDER            String
+  AGE               String
+  CONTACT           String
+  ADDRESS1          String
+  ADDRESS2          String
+  CITY              String
+  STATE             String
+  PIN               String
+  DISTRICT          String
+  COUNTRY           String
+  FULL_ADDRESS      String
+  SAMPLE_TYPE       String
+  SalesSPOC_Master  SalesSPOC_Master @relation(fields: [SALESSPOC_ID], references: [id])
+  SALESSPOC_ID      String
+  Doctor_Master     Doctor_Master    @relation(fields: [REF_DOCTOR_ID], references: [id])
+  REF_DOCTOR_ID     String
+  Hospital_Master   Hospital_Master  @relation(fields: [HOSPITAL_ID], references: [id])
+  HOSPITAL_ID       String
+  INTERNAL_EXTERNAL String
+  IS_ACTIVE         Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now())
+  Sample_Details    Sample_Details[]
+
+  @@map("Customer_Master") // table name in the database 
+}
+
+model Sample_Details {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID         String  @unique
+  ORDER_ID       String
+  SAMPLE_ID      String
+  SAMPLE_HAPL_ID String?
+  SAMPLE_NAME    String
+  CURRENT_STATUS String
+
+  CUSTOMER_TYPE              Customer_Type?
+  PAYMENT_TERMS              Payment_Terms?
+  PROPOSED_TRANSACTION_VALUE Int?
+
+  CUSTOMER_ID   String
+  CUSTOMER_NAME String
+
+  PATIENT_ID   String
+  PATIENT_NAME String
+
+  REF_DOCTOR_ID   String
+  REF_DOCTOR_NAME String
+
+  ORGANISATION_ID   String
+  ORGANISATION_NAME String
+
+  SALESSPOC_ID       String
+  SALESSPOC_NAME     String
+  INTIMATION_HAPL_ID String?
+
+  PAYMENT_ID            String
+  INVOICE_NUMBER        String
+  SAMPLE_PRICE          Float
+  PAYMENT_TYPE          String
+  OFFERS                String
+  PAYMENT_AMOUNT        Float
+  BILLING_AMOUNT        Float
+  AMOUNT_COLLECTED      Float
+  AMOUNT_COLLECTED_DATE DateTime
+
+  BATCH_ID String
+
+  LOGISTIC_USER_ID String
+  LAB_USER_ID      String
+
+  SAMPLE_ASSIGNMENT_DATE     DateTime
+  SAMPLE_ASSIGNMENT_DONE_BY  String
+  SAMPLE_ASSIGNMENT_STATUS   String
+  SAMPLE_ASSIGNMENT_COMMENTS String
+  SAMPLE_ASSIGNMENT_TIME     String
+  SITE_NAME                  String?
+
+  REGISTRATION_DATE     DateTime
+  REGISTRATION_DONE_BY  String
+  REGISTRATION_STATUS   String
+  REGISTRATION_COMMENTS String
+  REGISTRATION_TIME     String
+
+  COLLECTION_DATE            DateTime
+  COLLECTION_DONE_BY         String
+  COLLECTION_STATUS          String
+  COLLECTION_COMMENTS        String
+  COLLECTION_TIME            String
+  COLLECTION_TIME_IN_SECONDS String
+
+  PACKAGING_DATE            DateTime
+  PACKAGING_DONE_BY         String
+  PACKAGING_STATUS          String
+  PACKAGING_COMMENTS        String
+  PACKAGING_TIME            String
+  PACKAGING_TIME_IN_SECONDS String
+
+  SHIPMENT_DATE            DateTime
+  SHIPMENT_DONE_BY         String
+  SHIPMENT_STATUS          String
+  SHIPMENT_COMMENTS        String
+  SHIPMENT_TIME            String
+  SHIPMENT_TIME_IN_SECONDS String
+  SHIPMENT_VIA             String
+  SHIPMENT_TRACKING_ID     String
+
+  DELIVERED_DATE     DateTime
+  DELIVERED_STATUS   String
+  DELIVERED_COMMENTS String
+  DELIVERED_TIME     String
+
+  RECEIPT_DATE            DateTime
+  RECEIPT_DONE_BY         String
+  RECEIPT_STATUS          String
+  RECEIPT_COMMENTS        String
+  RECEIPT_TIME            String
+  RECEIPT_TIME_IN_SECONDS String
+
+  SAMPLE_ACKNOWLEDGE_DATE            DateTime
+  SAMPLE_ACKNOWLEDGE_DONE_BY         String
+  SAMPLE_ACKNOWLEDGE_STATUS          String
+  SAMPLE_ACKNOWLEDGE_COMMENTS        String
+  SAMPLE_ACKNOWLEDGE_TIME            String
+  SAMPLE_ACKNOWLEDGE_TIME_IN_SECONDS String
+
+  DNA_EXTRACTION_DATE            DateTime
+  DNA_EXTRACTION_BY              String
+  DNA_EXTRACTION_STATUS          String
+  DNA_EXTRACTION_COMMENTS        String
+  DNA_EXTRACTION_TIME            String
+  DNA_EXTRACTION_TIME_IN_SECONDS String
+  DNA_CONCENTRATION              String
+  PURIFIED_DNA_CONCENTRATION     String
+  NORMALIZED_DNA_CONCENTRATION   String
+
+  DNA_QC_STATUS          String
+  DNA_QC_STATUS_DONE_BY  String
+  DNA_QC_STATUS_COMMENTS String
+  DNA_QC_DATE            DateTime
+  DNA_QC_TIME            String
+  DNA_QC_TIME_IN_SECONDS String
+
+  LIBERARY_PREPARATION_DATE           DateTime
+  LIBERARY_PREPARATION_DONE_BY        String
+  LIBRARY_PREPARATION_STATUS          String
+  LIBRARY_PREPARATION_STATUS_COMMENTS String
+  LIBRARY_PREPARATION_TIME            String
+  LIBRARY_PREPERATION_TIME_IN_SECONDS String
+  LIBRARY_CONCENTRATION               String
+  FLONGLE_SERIAL_NUMBER               String
+  KIT_DETAILS                         String
+
+  LIB_QC_DATE            DateTime
+  LIB_QC_DONE_BY         String
+  LIB_QC_STATUS          String
+  LIB_QC_STATUS_COMMENTS String
+  LIB_QC_TIME            String
+  LIB_QC_TIME_IN_SECONDS String
+
+  SEQUENCE_RUN_DATE              DateTime
+  SEQUENCING_DONE_BY             String
+  SEQUENCE_RUN_STATUS            String
+  SEQUENCE_RUN_STATUS_COMMENTS   String
+  SEQUENCE_RUN_TIME              String
+  TOTAL_ANALYSIS_TIME_IN_SECONDS String
+  VOLUME_USED                    String
+
+  VALIDATION_OF_SEQUENCE_DATA_DATE            DateTime
+  VALIDATION_OF_SEQUENCE_DATA_DONE_BY         String
+  VALIDATION_OF_SEQUENCE_DATA_STATUS          String
+  VALIDATION_OF_SEQUENCE_DATA_STATUS_COMMENTS String
+  VALIDATION_OF_SEQUENCE_DATA_TIME            String
+  VALIDATION_OF_SEQUENCE_DATA_TIME_IN_SECONDS String
+
+  IS_BED_TOOL_PASS         String
+  BED_TOOL_COMMENTS        String
+  BED_TOOL_DATE            DateTime
+  BED_TOOL_DONE_BY         String
+  BED_TOOL_TIME            String
+  BED_TOOL_TIME_IN_SECONDS String
+
+  SECONDARY_ANALYSIS_DATE            DateTime
+  SECONDARY_ANALYSIS_STATUS          String
+  SECONDARY_ANALYSIS_DONE_BY         String
+  SECONDARY_ANALYSIS_COMMENTS        String
+  SECONDARY_ANALYSIS_TIME            String
+  SECONDARY_ANALYSIS_TIME_IN_SECONDS String
+
+  REPORT_GENERATION_DATE            DateTime
+  REPORT_GENERATION_STATUS          String
+  REPORT_GENERATION_DONE_BY         String
+  REPORT_GENERATION_STATUS_COMMENTS String
+  REPORT_GENERATION_TIME            String
+  REPORT_GENERATION_TIME_IN_SECONDS String
+
+  REPORT_SHARING_DATE            DateTime?
+  REPORT_SHARING_STATUS          String
+  REPORT_SHARING_COMMENTS        String
+  REPORT_SHARING_DONE_BY         String
+  REPORT_SHARING_TIME            String
+  REPORT_SHARING_TIME_IN_SECONDS String
+
+  FINAL_SAMPLE_STATUS String
+  REMARKS             String
+  TOTAL_TAT_IN_HRS    Float
+  DELAY_STATUS        String
+
+  CITY         String
+  FINAL_STATUS String
+  PRODUCT_ID   String
+  PRODUCT      String
+
+  USER_ID       String?
+  MANAGER_ID    String?
+  MANAGER_EMAIL String?
+  USER_EMAIL    String?
+
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now())
+  Payment_Information Payment_Information[]
+  Customer_Master     Customer_Master?      @relation(fields: [customer_MasterId], references: [id])
+  customer_MasterId   String?               @db.ObjectId
+
+  @@map("Sample_Details") // table name in the database 
+}
+
+model Payment_Information {
+  id                    String         @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID                String         @unique
+  Sample_Details        Sample_Details @relation(fields: [SAMPLE_ID], references: [id])
+  SAMPLE_ID             String
+  IS_PAID               String
+  PAYMENT_AMOUNT        Float
+  BILLING_AMOUNT        Float
+  AMOUNT_COLLECTED      Float
+  AMOUNT_COLLECTED_DATE DateTime
+  PAYMENT_TYPE          String
+  COUPON_CODE           String
+  OFFER                 String
+  SALESSPOC_ID          String
+  REF_DOCTOR_ID         String
+  HOSPITAL_ID           String
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @default(now())
+
+  @@map("Payment_Information") // table name in the database 
+}
+
+enum VisitStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  AD_HOC
+}
+
+model Visit_Information {
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String? @db.ObjectId
+  ManagerId    String?
+  ManagerEmail String?
+  UserEmail    String?
+  UserDetails  User?   @relation(name: "UserDetailsRelation", fields: [userId], references: [id])
+
+  HAPLID                   String         @unique
+  STATUS                   VisitStatus?   @default(PENDING)
+  EMAIL                    String
+  TODAY_VISIT_COUNT        Float
+  VISIT_TYPE               String
+  CUSTOMER_TYPE            Customer_Type?
+  DOCTOR_NAME              String
+  HOSPITAL_NAME            String
+  YOUR_NAME                String
+  ORGANIZATION_ID          String?        @db.ObjectId
+  CUSTOMER_ID              String?        @db.ObjectId
+  REPORTING_MANAGER_NAME   String
+  AREA_ALLOTED             String?
+  ADDRESS_CLIENT           String?
+  REPORT_TYPE              String
+  CLIENT_NAME              String
+  CLIENT_EMAIL             String
+  CLIENT_PHONE             String
+  PINCODE_CLIENT           Float
+  SIZE_OF_CLIENT           Float?
+  ASSOCIATION_TYPE         String?
+  NATURE_OF_CLIENT         String?
+  CLIENT                   String
+  TAGS                     String[]
+  NAME_OF_PERSON_MET       String
+  DESIGNATION_OF_PERSON    String
+  QUESTIONS_BY_CLIENT      String
+  NEXT_STEPS               String
+  VISIT_OR_CALL_HIGHLIGHTS String
+  INITIAL_MARKETING_GIVEN  String?
+  PLANNED_IN_DATE_TIME     DateTime?
+  PLANNED_OUT_DATE_TIME    DateTime?
+  IN_DATETIME              DateTime
+  OUT_DATETIME             DateTime
+  IN_DATE                  String
+  OUT_DATE                 String
+  IN_TIME                  String
+  OUT_TIME                 String
+  LATLNG                   String
+  GEOLOCATION              String
+  CAPTURED_DATE            String
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @default(now())
+
+  @@map("Visit_Information")
+}
+
+model Service_Catalogue_New {
+  id                  String  @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID              String  @unique
+  ITEM_ID             String
+  SAMPLE_TYPE         String
+  SEQUENCING_PLATFORM String
+  SEQUENCING_APP      String
+  BANNER_IMG          String
+  CARD_IMG            String
+  DESCRIPTION         String
+  SCHEMA              Json
+  INR_PRICE           Float
+  USD_PRICE           Float
+  TAT                 String
+  CODE                String
+  BRAND               String?
+  ACTIVE              Int?
+  GST_RATE            Float   @default(0.0)
+  IS_GST_EXEMPTED     Boolean @default(false)
+  HSN_CODE            String?
+  PRODUCT_CATEGORY    String?
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @default(now())
+  Intimation Intimation[]
+
+  @@map("Service_Catalogue_New") // table name in the database 
+}
+
+model Product_Catalogue {
+  id                  String  @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID              String  @unique
+  ITEM_ID             String
+  SAMPLE_TYPE         String
+  SEQUENCING_PLATFORM String
+  SEQUENCING_APP      String
+  BANNER_IMG          String
+  CARD_IMG            String
+  DESCRIPTION         String
+  INR_PRICE           Float
+  USD_PRICE           Float
+  SCHEMA              Json
+  TAT                 String
+  CODE                String
+  BRAND               String?
+  ACTIVE              Int?
+  GST_RATE            Float   @default(0.0)
+  IS_GST_EXEMPTED     Boolean @default(false)
+  HSN_CODE            String?
+  PRODUCT_CATEGORY    String?
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @default(now())
+  Intimation Intimation[]
+
+  @@map("Product_Catalogue") // table name in the database 
+}
+
+model Schema {
+  id                              String @id @default(auto()) @map("_id") @db.ObjectId
+  INTIMATION_FORM_SCHEMA          Json
+  INTIMATION_UI_SCHEMA            Json
+  VISIT_FORM_SCHEMA               Json
+  VISIT_UI_SCHEMA                 Json
+
+  CREATE_ORGANIZATION_FORM_SCHEMA Json
+  CREATE_ORGANIZATION_UI_SCHEMA   Json
+
+  PLAN_VISIT_SCHEMA    Json
+  PLAN_VISIT_UI_SCHEMA Json
+}
+
+enum Customer_Type {
+  B2B
+  B2D
+  B2C
+}
+
+enum Organization_Category {
+  HOSPITAL
+  RESEARCH_INSTITUTE
+  LAB
+  OTHER
+}
+
+enum Payment_Terms {
+  AS_PER_MOU
+  ONLINE
+  CASH
+  FOC
+}
+
+model Intimation {
+  id                         String                 @id @default(auto()) @map("_id") @db.ObjectId
+  INTIMATION_HAPL_ID         String                 @unique
+  userId                     String?                @db.ObjectId
+  PRODUCT_ID                 String?
+  SERVICE_ID                 String?
+  PRODUCT_TYPE               String
+  SALES_PERSON_ID            String
+  NOTE                       String?
+  STATUS                     String?                @default("Pending")
+  data                       Json
+  ManagerId                  String?
+  ManagerEmail               String?
+  UserEmail                  String?
+  UserDetails                User?                  @relation(name: "UserDetailsRelation", fields: [userId], references: [id])
+  Sales_Person_Master        User?                  @relation(name: "SalesPersonRelation", fields: [SALES_PERSON_ID], references: [id])
+  Service_Catalogue_New      Service_Catalogue_New? @relation(fields: [SERVICE_ID], references: [HAPLID])
+  Product_Catalogue          Product_Catalogue?     @relation(fields: [PRODUCT_ID], references: [HAPLID])
+  CUSTOMER_TYPE              Customer_Type?
+  PAYMENT_TERMS              Payment_Terms?
+  PROPOSED_TRANSACTION_VALUE Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model Hospital {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  CITY                String?
+  STATE               String
+  First_Name          String    @map("First_Name")
+  Last_Name           String    @map("Last_Name")
+  SPECIALIZATION      String
+  ORGID               String?   @map("ORGID")
+  HOSPITAL_NAME       String?   @map("HOSPITAL NAME")
+  ADDRESS_1           String    @map("ADDRESS_1")
+  ADDRESS_2           String?   @map("ADDRESS_2")
+  CITY__1             String    @map("CITY__1")
+  STATE__1            String    @map("STATE__1")
+  PINCODE             Int       @map("PINCODE")
+  DISTRICT            String    @map("DISTRICT")
+  COUNTRY             String    @map("COUNTRY")
+  ADDRESS             String    @map("ADDRESS")
+  EMAIL_ID            String?   @map("EMAIL ID")
+  CONTACT_NUMBER      Int?      @map("CONTACT NUMBER")
+  HOSPITAL_CODE       String?
+  HOSPITAL_OTHER_INFO String?
+  createdAt           DateTime? @default(now())
+  updatedAt           DateTime? @default(now())
+}
+
+model LocationData {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  metadata  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tags {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("Tags")
+}
+
+model Organization_Master {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  ORGANIZATION_TYPE     Customer_Type
+  ORGANIZATION_CATEGORY Organization_Category
+  ORGANIZATION_NAME     String
+  ORGANIZATION_ADDRESS  Address
+  ORGANIZATION_EMAIL    String?
+  ORGANIZATION_GST_ID   String?
+  ORGANIZATION_PAN      String?
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Customer  Customer[]
+}
+
+type Address {
+  ADDRESS_1         String
+  ADDRESS_2         String?
+  CITY              String
+  STATE             String
+  POSTAL_CODE       String
+  FORMATTED_ADDRESS String
+  COUNTRY           String? @default("India")
+}
+
+model Customer {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  CUSTOMER_TYPE Customer_Type
+  // CUSTOMER_CATEGORY Organization_Category
+  PROFESSION    Profession
+
+  FIRST_NAME            String
+  LAST_NAME             String
+  DOCTOR_SPECIALIZATION String?
+  GENDER                Gender
+  CUSTOMER_ADDRESS      Address
+
+  CONTACT_NUMBER String?
+  EMAIL          String?
+
+  ORGANIZATION_ID String? @db.ObjectId
+
+  Organization_Master Organization_Master? @relation(fields: [ORGANIZATION_ID], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Profession {
+  DOCTOR
+  OTHER
+}
+
+// model VwUser {
+//   id             String   @id @default(auto()) @map("_id") @db.ObjectId
+//   username       String
+//   name           String
+//   email          String
+//   role           String
+//   hash           String
+//   salt           String
+//   password       String
+//   provider       String
+//   createdAt      DateTime
+//   updatedAt      DateTime
+//   managerId      String?  @db.ObjectId
+//   managerEmail   String?
+//   managersEmails String[]
+
+//   @@map("VwUser")
+// }
+
+model Hospital_2 {
+  id                  String        @id @default(auto()) @map("_id") @db.ObjectId
+  CITY                String?
+  STATE               String
+  First_Name          String        @map("First_Name")
+  Last_Name           String        @map("Last_Name")
+  SPECIALIZATION      String
+  ORGID               String?       @map("ORGID")
+  HOSPITAL_NAME       String?       @map("HOSPITAL NAME")
+  ADDRESS_1           String        @map("ADDRESS_1")
+  ADDRESS_2           String?       @map("ADDRESS_2")
+  CITY__1             String        @map("CITY__1")
+  STATE__1            String        @map("STATE__1")
+  PINCODE             Int           @map("PINCODE")
+  DISTRICT            String        @map("DISTRICT")
+  COUNTRY             String        @map("COUNTRY")
+  ADDRESS             String        @map("ADDRESS")
+  EMAIL_ID            String?       @map("EMAIL ID")
+  CONTACT_NUMBER      Int?          @map("CONTACT NUMBER")
+  HOSPITAL_CODE       String?
+  HOSPITAL_OTHER_INFO String?
+  CUSTOMER_TYPE       Customer_Type
+  createdAt           DateTime?     @default(now())
+  updatedAt           DateTime?     @default(now())
+}
