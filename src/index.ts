@@ -409,6 +409,232 @@ app.get(`/api/v1/customer/orders`, async (c: Context) => {
   }
 });
 
+
+app.get("/api/v1/order/my-orders/accounts", async (c: Context) => {
+
+  const take: number = parseInt(c.query.take as string) || 10;
+  const lastCursor: string | undefined = c.query.lastCursor as string;
+  const searchTerm: string | undefined = c.query.searchParam as string;
+  const fromDt: string | undefined = c.query.fromDt as string;
+  const toDt: string | undefined = c.query.toDt as string;
+
+
+
+  const startDt = new Date(fromDt);
+  const endDt = new Date(toDt);
+
+  try {
+    if (isNaN(startDt.getTime()) || isNaN(endDt.getTime())) {
+      c.set.status = 400;
+      throw new Error("Invalid date parameters");
+    }
+    endDt.setHours(23, 59, 59, 999);
+
+    const sanitizedSearchTerm = decodeURIComponent(searchTerm)
+      .trim()
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const baseWhere: Prisma.Order_Basic_InfoWhereInput = {
+      createdAt: {
+        gte: startDt.toISOString(),
+        lte: endDt.toISOString(),
+      },
+
+      Customer_Master: {
+        CUSTOMER_TYPE: {
+          in: ["B2C", "B2D"]
+        }
+      }
+    };
+
+    let searchFilters: Prisma.Order_Basic_InfoWhereInput = {};
+
+    if (sanitizedSearchTerm) {
+      searchFilters = {
+        OR: [
+          {
+            Order_Sample_Info: {
+              some: {
+                OR: [
+                  {
+                    HAPLID: {
+                      startsWith: sanitizedSearchTerm,
+                      mode: 'insensitive'
+                    }
+                  },
+                  {
+                    INTIMATION_HAPL_ID: {
+                      startsWith: sanitizedSearchTerm,
+                      mode: 'insensitive'
+                    }
+                  },
+                  {
+                    CURRENT_STATUS: {
+                      startsWith: sanitizedSearchTerm,
+                      mode: 'insensitive'
+                    }
+                  },
+                  {
+                    Patient_Master: {
+                      OR: [
+                        {
+                          FIRST_NAME: {
+                            startsWith: sanitizedSearchTerm,
+                            mode: 'insensitive'
+                          }
+                        },
+                        {
+                          LAST_NAME: {
+                            startsWith: sanitizedSearchTerm,
+                            mode: 'insensitive'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+
+          {
+            Customer_Master: {
+              OR: [
+                {
+                  FIRST_NAME: {
+                    startsWith: sanitizedSearchTerm,
+                    mode: "insensitive"
+                  }
+                },
+                {
+                  LAST_NAME: {
+                    startsWith: sanitizedSearchTerm,
+                    mode: "insensitive"
+                  }
+                },
+              ]
+            }
+          },
+
+          {
+            ORDER_ID: {
+              startsWith: sanitizedSearchTerm,
+              mode: "insensitive"
+            }
+          },
+
+          {
+            PRODUCT_NAME: {
+              startsWith: sanitizedSearchTerm,
+              mode: "insensitive"
+            }
+          }
+        ]
+      };
+    }
+
+    console.log(searchFilters, "searchFilters")
+
+    const whereClause: Prisma.Order_Basic_InfoWhereInput = sanitizedSearchTerm
+      ? { AND: [baseWhere, searchFilters] }
+      : baseWhere;
+
+    const totalCount = await db.order_Basic_Info.count({ where: whereClause });
+
+    const queryOptions: Prisma.Order_Basic_InfoFindManyArgs = {
+      where: whereClause,
+      take,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+
+      select: {
+        id: true,
+        createdAt: true,
+        PRODUCT_NAME: true,
+        NUMBER_OF_SAMPLES: true,
+        PAYMENT_TERMS: true,
+        PROPOSED_TRANSACTION_VALUE: true,
+        ORDER_ID: true,
+
+        Order_Sample_Info: {
+          select: {
+            createdAt: true,
+            SAMPLE_ID: true,
+            HAPLID: true,
+            CURRENT_STATUS: true,
+            invoiceRef: true,
+            invoiced: true,
+            ORDER_ID: true,
+            INTIMATION_HAPL_ID: true,
+
+            Patient_Master: {
+              select: {
+                FIRST_NAME: true,
+                LAST_NAME: true,
+              }
+            }
+          }
+        },
+
+        Customer_Master: {
+          select: {
+            FIRST_NAME: true,
+            LAST_NAME: true,
+            CUSTOMER_TYPE: true,
+
+            Organisation_Master: {
+              select: {
+                NAME: true
+              }
+            }
+          },
+        }
+      }
+    };
+
+    if (lastCursor && lastCursor !== "0") {
+      const [cursorCreatedAt, cursorId] = lastCursor.split("_");
+      queryOptions.cursor = {
+        id: cursorId,
+        createdAt: new Date(cursorCreatedAt),
+      };
+      queryOptions.skip = 1;
+    }
+    const result = await db.order_Basic_Info.findMany(queryOptions);
+
+    let hasNextPage = false;
+
+    if (result.length >= take) {
+      hasNextPage = true;
+    }
+
+    const lastItem = result[result.length - 1];
+    const lastCursorValue = lastItem
+      ? `${lastItem.createdAt.toISOString()}_${lastItem.id}`
+      : null;
+
+    const response = {
+      data: result,
+      metaData: {
+        totalCount,
+        lastCursor: lastCursorValue,
+        hasNextPage,
+      },
+    };
+
+    c.set.status = 200;
+    return { status: 200, success: true, data: response };
+  } catch (error: any) {
+    console.error("error while getting orders :", error);
+    c.set.status = error.status || 500;
+    return {
+      status: c.set.status,
+      success: false,
+      message: error.message || "error while getting orders",
+    };
+  }
+}
+)
+
 // server running
 app.listen(PORT);
 

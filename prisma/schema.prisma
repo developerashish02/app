@@ -56,32 +56,30 @@ model Roles_Actionables_Map {
 }
 
 model User {
-  id                     String                   @id @default(auto()) @map("_id") @db.ObjectId
-  username               String                   @unique
-  name                   String
-  email                  String                   @unique
-  managerId              String?                  @db.ObjectId
-  managerEmail           String?
-  role                   String
-  hash                   String
-  salt                   String
-  password               String
-  provider               String
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime                 @default(now())
-  User_Verification_Info User_Verification_Info[]
-
-  IntimationsAsUser        Intimation[]        @relation(name: "UserDetailsRelation")
-  IntimationsAsSalesPerson Intimation[]        @relation(name: "SalesPersonRelation")
-  Visit_Information        Visit_Information[] @relation(name: "UserDetailsRelation")
+  id                      String                    @id @default(auto()) @map("_id") @db.ObjectId
+  username                String                    @unique
+  name                    String
+  email                   String                    @unique
+  role                    String
+  hash                    String
+  salt                    String
+  password                String
+  provider                String
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @default(now())
+  Audit_Trail             Audit_Trail[]
+  Location_Samples        Location_Samples[]
+  Location_Admin          Location_Admin[]
+  User_Verification_Info  User_Verification_Info[]
+  Location_Admin_Relation Location_Admin_Relation[]
 
   @@map("User") // table name in the database 
 }
 
 model User_Verification_Info {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  User              User?    @relation(fields: [userId], references: [id])
-  userId            String?
+  User              User     @relation(fields: [userId], references: [id])
+  userId            String
   IS_ACTIVE         Boolean
   API_KEY           String
   VERIFICATION_CODE String
@@ -116,58 +114,216 @@ model Session {
   @@map("Session") // table name in the database 
 }
 
-model Hospital_Master {
-  id              String            @id @default(auto()) @map("_id") @db.ObjectId
-  NAME            String            @unique
-  CITY            String
-  STATE           String
-  PIN             String
-  ADDRESS1        String
-  ADDRESS2        String
-  LATLONG         String
-  IS_ACTIVE       Boolean           @default(true)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @default(now())
-  Doctor_Master   Doctor_Master[]
-  Customer_Master Customer_Master[]
+model Audit_Trail {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  LOGID         String     @default(uuid())
+  MODULE        String
+  ORIGIN        String
+  EVENT_CODE    String
+  EVENT         String
+  INFORMATION   String
+  EVENT_CONTEXT Json
+  USER_ID       String
+  RELATION_ID   String
+  ACTION_TIME   String
+  COMMENTS      Comments[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @default(now())
+  User          User?      @relation(fields: [userId], references: [id])
+  userId        String?    @db.ObjectId
 
-  @@map("Hospital_Master") // table name in the database 
+  @@map("Audit_Trail") // table name in the database 
+}
+
+model Comments {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  Audit_Trail    Audit_Trail @relation(fields: [AUDIT_TRAIL_ID], references: [id])
+  AUDIT_TRAIL_ID String
+  FROM_USER      String
+  TO_USER        String
+  COMMENT        String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @default(now())
+
+  @@map("Comments") // table name in the database 
+}
+
+model Organisation_Master {
+  id                  String              @id @default(auto()) @map("_id") @db.ObjectId
+  NAME                String
+  CITY                String
+  STATE               String
+  PIN                 String
+  ADDRESS1            String
+  ADDRESS2            String?
+  LATLONG             String
+  FORMATTED_ADDRESS   String?
+  COUNTRY             String?             @default("India")
+  ORG_TYPE            String
+  ORGANIZATION_EMAIL  String?
+  ORGANIZATION_GST_ID String?
+  ORG_CODE            String?
+  IS_ACTIVE           Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @default(now())
+  Doctor_Master       Doctor_Master[]
+  Customer_Master     Customer_Master[]
+  User_Tag_Relation   User_Tag_Relation[]
+  Patient_Master      Patient_Master[]
+
+  @@index([NAME])
+  @@map("Organisation_Master") // table name in the database 
 }
 
 model Doctor_Master {
-  id              String          @id @default(auto()) @map("_id") @db.ObjectId
-  FIRST_NAME      String
-  LAST_NAME       String
-  DESIGNATION     String
-  Hospital_Master Hospital_Master @relation(fields: [HOSPITAL_ID], references: [id])
-  HOSPITAL_ID     String
-  IS_ACTIVE       Boolean         @default(true)
+  id                  String              @id @default(auto()) @map("_id") @db.ObjectId
+  FIRST_NAME          String
+  LAST_NAME           String
+  DESIGNATION         String
+  Organisation_Master Organisation_Master @relation(fields: [ORG_ID], references: [id])
+  ORG_ID              String
+  IS_ACTIVE           Boolean             @default(true)
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @default(now())
-  Customer_Master Customer_Master[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @default(now())
+  Customer_Master   Customer_Master[]
+  User_Tag_Relation User_Tag_Relation[]
+  Patient_Master    Patient_Master[]
 
   @@map("Doctor_Master") // table name in the database 
 }
 
-model SalesSPOC_Master {
-  id         String  @id @default(auto()) @map("_id") @db.ObjectId
-  FIRST_NAME String
-  LAST_NAME  String
-  EMAIL      String  @unique
-  CONTACT    String  @unique
-  IS_ACTIVE  Boolean @default(true)
+model Customer_Master {
+  id                        String                      @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID                    String                      @unique
+  USER_ID                   String                      @unique
+  FIRST_NAME                String
+  LAST_NAME                 String
+  GENDER                    String
+  DOB                       String
+  AGE                       String
+  OCCUPATION                String
+  PRIMARY_EMAIL             String
+  CONTACT                   String
+  ADDRESS1                  String
+  ADDRESS2                  String?
+  CITY                      String
+  STATE                     String
+  PIN                       String
+  DISTRICT                  String
+  COUNTRY                   String
+  FULL_ADDRESS              String
+  INTERNAL_EXTERNAL         String
+  CUSTOMER_TYPE             String?
+  IS_ACTIVE                 Boolean                     @default(true)
+  Doctor_Master             Doctor_Master?              @relation(fields: [REF_DOCTOR_ID], references: [id])
+  REF_DOCTOR_ID             String?
+  Organisation_Master       Organisation_Master?        @relation(fields: [ORG_ID], references: [id])
+  ORG_ID                    String
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @default(now())
+  Order_Basic_Info          Order_Basic_Info[]
+  User_Tag_Relation         User_Tag_Relation[]
+  Sample_Lab_Event_log      Sample_Lab_Event_log[]
+  Order_Sample_Info         Order_Sample_Info[]
+  Patient_Master            Patient_Master[]
+  Customer_Type_Details     Customer_Type_Details[]
+  Customer_Coupon_Map       Customer_Coupon_Map[]
+  Sample_Lab_Event_log_Copy Sample_Lab_Event_log_Copy[]
+  B2BInvoice                B2BInvoice[]
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @default(now())
-  Customer_Master Customer_Master[]
-
-  @@map("SalesSPOC_Master") // table name in the database 
+  @@index([FIRST_NAME])
+  @@index([LAST_NAME])
+  @@index([ORG_ID])
+  @@map("Customer_Master") // table name in the database 
 }
 
-model Customer_Master {
-  id                String           @id @default(auto()) @map("_id") @db.ObjectId
-  HAPLID            String           @unique
+model Customer_Type_Details {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  Customer_Master Customer_Master? @relation(fields: [CUSTOMER_ID], references: [HAPLID])
+  CUSTOMER_ID     String?
+  ASSIGN_LIMIT    Float
+  OTHER_INFO      Json
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now())
+  QR_Info         QR_Info[]
+
+  @@map("Customer_Type_Details") // table name in the database 
+}
+
+model QR_Info {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  Customer_Type_Details Customer_Type_Details? @relation(fields: [DETAIL_ID], references: [id])
+  DETAIL_ID             String?
+  QR_CODE               String
+  IS_USED               Boolean                @default(false)
+  OTHER_INFO            Json
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @default(now())
+  Customer_Master_B2C   Customer_Master_B2C[]
+
+  @@map("QR_Info") // table name in the database 
+}
+
+model Customer_Master_B2C {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID            String   @unique
+  USER_ID           String   @unique
+  IS_PARENT         Boolean
+  QR_Info           QR_Info? @relation(fields: [QR_Info_Id], references: [id])
+  QR_Info_Id        String?
+  FIRST_NAME        String
+  LAST_NAME         String
+  GENDER            String
+  DOB               String
+  AGE               String
+  OCCUPATION        String
+  PRIMARY_EMAIL     String
+  CONTACT           String
+  ADDRESS1          String
+  ADDRESS2          String
+  CITY              String
+  STATE             String
+  PIN               String
+  DISTRICT          String
+  COUNTRY           String
+  FULL_ADDRESS      String
+  HASH              String
+  SALT              String
+  PASSWORD          String
+  INTERNAL_EXTERNAL String
+  IS_ACTIVE         Boolean  @default(true)
+  OTHER_INFO        Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+
+  // Relations
+  parentRelations Customer_Master_B2C_Parent_Child_Map[] @relation("ParentRelation")
+  childRelations  Customer_Master_B2C_Parent_Child_Map[] @relation("ChildRelation")
+
+  @@map("Customer_Master_B2C") // table name in the database 
+}
+
+model Customer_Master_B2C_Parent_Child_Map {
+  id         String               @id @default(auto()) @map("_id") @db.ObjectId
+  parent     Customer_Master_B2C? @relation("ParentRelation", fields: [PARENT_ID], references: [id])
+  PARENT_ID  String?
+  child      Customer_Master_B2C? @relation("ChildRelation", fields: [CHILD_ID], references: [id])
+  CHILD_ID   String?
+  OTHER_INFO Json
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @default(now())
+
+  @@map("Customer_Master_B2C_Parent_Child_Map") // table name in the database 
+}
+
+model Sales_Master {
+  id                String              @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID            String              @unique
+  USER_ID           String              @unique
   FIRST_NAME        String
   LAST_NAME         String
   GENDER            String
@@ -181,72 +337,658 @@ model Customer_Master {
   DISTRICT          String
   COUNTRY           String
   FULL_ADDRESS      String
-  SAMPLE_TYPE       String
-  SalesSPOC_Master  SalesSPOC_Master @relation(fields: [SALESSPOC_ID], references: [id])
-  SALESSPOC_ID      String
-  Doctor_Master     Doctor_Master    @relation(fields: [REF_DOCTOR_ID], references: [id])
-  REF_DOCTOR_ID     String
-  Hospital_Master   Hospital_Master  @relation(fields: [HOSPITAL_ID], references: [id])
-  HOSPITAL_ID       String
   INTERNAL_EXTERNAL String
-  IS_ACTIVE         Boolean          @default(true)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @default(now())
-  Sample_Details    Sample_Details[]
+  IS_ACTIVE         Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @default(now())
+  User_Tag_Relation User_Tag_Relation[]
 
-  @@map("Customer_Master") // table name in the database 
+  @@map("Sales_Master") // table name in the database 
 }
 
-model Sample_Details {
-  id             String  @id @default(auto()) @map("_id") @db.ObjectId
-  HAPLID         String  @unique
-  ORDER_ID       String
-  SAMPLE_ID      String
-  SAMPLE_HAPL_ID String?
-  SAMPLE_NAME    String
-  CURRENT_STATUS String
+model Logistic_Master {
+  id                         String                       @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID                     String                       @unique
+  USER_ID                    String                       @unique
+  FIRST_NAME                 String
+  LAST_NAME                  String
+  GENDER                     String
+  AGE                        String
+  CONTACT                    String
+  ADDRESS1                   String
+  ADDRESS2                   String
+  CITY                       String
+  STATE                      String
+  PIN                        String
+  DISTRICT                   String
+  COUNTRY                    String
+  FULL_ADDRESS               String
+  INTERNAL_EXTERNAL          String
+  IS_ACTIVE                  Boolean                      @default(true)
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime                     @default(now())
+  Sample_Logistic_Assignment Sample_Logistic_Assignment[]
+  User_Tag_Relation          User_Tag_Relation[]
+  Sample_Lab_Event_log       Sample_Lab_Event_log[]
+  Sample_Lab_Event_log_Copy  Sample_Lab_Event_log_Copy[]
 
-  CUSTOMER_TYPE              Customer_Type?
-  PAYMENT_TERMS              Payment_Terms?
+  @@map("Logistic_Master") // table name in the database 
+}
+
+model Lab_User_Master {
+  id                        String                      @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID                    String                      @unique
+  USER_ID                   String                      @unique
+  FIRST_NAME                String
+  LAST_NAME                 String
+  GENDER                    String
+  AGE                       String
+  CONTACT                   String
+  ADDRESS1                  String
+  ADDRESS2                  String
+  CITY                      String
+  STATE                     String
+  PIN                       String
+  DISTRICT                  String
+  COUNTRY                   String
+  LAB_TYPE                  String
+  FULL_ADDRESS              String
+  INTERNAL_EXTERNAL         String
+  IS_ACTIVE                 Boolean                     @default(true)
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @default(now())
+  Sample_Lab_Assignment     Sample_Lab_Assignment[]
+  User_Tag_Relation         User_Tag_Relation[]
+  Run_Master                Run_Master[]
+  Sample_Run_Assignment     Sample_Run_Assignment[]
+  Sample_Lab_Event_log      Sample_Lab_Event_log[]
+  Sample_Lab_Event_log_Copy Sample_Lab_Event_log_Copy[]
+
+  @@map("Lab_User_Master") // table name in the database 
+}
+
+model Revenue_Master {
+  id                String              @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID            String              @unique
+  USER_ID           String              @unique
+  FIRST_NAME        String
+  LAST_NAME         String
+  GENDER            String
+  AGE               String
+  CONTACT           String
+  ADDRESS1          String
+  ADDRESS2          String
+  CITY              String
+  STATE             String
+  PIN               String
+  DISTRICT          String
+  COUNTRY           String
+  FULL_ADDRESS      String
+  INTERNAL_EXTERNAL String
+  IS_ACTIVE         Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @default(now())
+  User_Tag_Relation User_Tag_Relation[]
+
+  @@map("Revenue_Master") // table name in the database 
+}
+
+model Location_Admin {
+  id                      String                    @id @default(auto()) @map("_id") @db.ObjectId
+  User                    User                      @relation(fields: [USER_ID], references: [id])
+  USER_ID                 String
+  LOCATION_ID             String
+  LOCATION_NAME           String
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @default(now())
+  Run_Execution           Run_Execution[]
+  Location_Admin_Relation Location_Admin_Relation[]
+  Order_Sample_Info       Order_Sample_Info[]
+
+  @@map("Location_Admin") // table name in the database 
+}
+
+model Location_Admin_Relation {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  User           User           @relation(fields: [USER_ID], references: [id])
+  USER_ID        String
+  Location_Admin Location_Admin @relation(fields: [LOCATION_ID], references: [id])
+  LOCATION_ID    String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now())
+
+  @@map("Location_Admin_Relation") // table name in the database 
+}
+
+model Tag_Master {
+  id                  String                @id @default(auto()) @map("_id") @db.ObjectId
+  TAG                 String                @unique
+  INFO                String
+  IS_CUSTOM           Boolean
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now())
+  User_Tag_Relation   User_Tag_Relation[]
+  Order_Tag_Relation  Order_Tag_Relation[]
+  Sample_Tag_Relation Sample_Tag_Relation[]
+  Run_Tag_Relation    Run_Tag_Relation[]
+
+  @@map("Tag_Master") // table name in the database 
+}
+
+model User_Tag_Relation {
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  Tag_Master          Tag_Master           @relation(fields: [TAG], references: [TAG])
+  TAG                 String
+  Customer_Master     Customer_Master?     @relation(fields: [CUSTOMER_ID], references: [id])
+  CUSTOMER_ID         String?              @db.ObjectId
+  Sales_Master        Sales_Master?        @relation(fields: [SALES_USERID], references: [id])
+  SALES_USERID        String?              @db.ObjectId
+  Logistic_Master     Logistic_Master?     @relation(fields: [LOGISTIC_USERID], references: [id])
+  LOGISTIC_USERID     String?              @db.ObjectId
+  Lab_User_Master     Lab_User_Master?     @relation(fields: [LAB_USERID], references: [id])
+  LAB_USERID          String?              @db.ObjectId
+  Revenue_Master      Revenue_Master?      @relation(fields: [REVENUE_USERID], references: [id])
+  REVENUE_USERID      String?              @db.ObjectId
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now())
+  Organisation_Master Organisation_Master? @relation(fields: [org_MasterId], references: [id])
+  org_MasterId        String?              @db.ObjectId
+  Doctor_Master       Doctor_Master?       @relation(fields: [doctor_MasterId], references: [id])
+  doctor_MasterId     String?              @db.ObjectId
+  Patient_Master      Patient_Master?      @relation(fields: [patient_MasterId], references: [id])
+  patient_MasterId    String?              @db.ObjectId
+
+  @@map("User_Tag_Relation") // table name in the database 
+}
+
+model Patient_Master {
+  id                        String                      @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID                    String                      @unique
+  PATIENT_ID                String                      @unique
+  IDENTITY_ID               String?
+  FIRST_NAME                String
+  LAST_NAME                 String
+  GENDER                    String
+  DOB                       String
+  AGE                       String
+  OCCUPATION                String
+  PRIMARY_EMAIL             String
+  CONTACT                   String
+  ADDRESS1                  String
+  ADDRESS2                  String
+  CITY                      String
+  STATE                     String
+  PIN                       String
+  DISTRICT                  String
+  COUNTRY                   String
+  FULL_ADDRESS              String
+  INTERNAL_EXTERNAL         String
+  IS_ACTIVE                 Boolean                     @default(true)
+  Customer_Master           Customer_Master?            @relation(fields: [CUSTOMER_ID], references: [id])
+  CUSTOMER_ID               String
+  Doctor_Master             Doctor_Master?              @relation(fields: [REF_DOCTOR_ID], references: [id])
+  REF_DOCTOR_ID             String
+  Organisation_Master       Organisation_Master?        @relation(fields: [ORG_ID], references: [id])
+  ORG_ID                    String
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @default(now())
+  User_Tag_Relation         User_Tag_Relation[]
+  Order_Sample_Info         Order_Sample_Info[]
+  Sample_Lab_Event_log      Sample_Lab_Event_log[]
+  Upstream_Patient_Master   Upstream_Patient_Master[]
+  Sample_Lab_Event_log_Copy Sample_Lab_Event_log_Copy[]
+
+  @@index([CUSTOMER_ID])
+  @@index([FIRST_NAME])
+  @@index([LAST_NAME])
+  @@map("Patient_Master") // table name in the database 
+}
+
+model Upstream_Patient_Master {
+  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
+  Patient_Master      Patient_Master?    @relation(fields: [PATIENT_ID], references: [HAPLID])
+  PATIENT_ID          String
+  Order_Sample_Info   Order_Sample_Info? @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID           String
+  UPSTREAM_PATIENT_ID String
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now())
+
+  @@map("Upstream_Patient_Master") // table name in the database 
+}
+
+enum Payment_Terms {
+  AS_PER_MOU
+  ONLINE
+  CASH
+  FOC
+}
+
+model Order_Basic_Info {
+  id                String             @id @default(auto()) @map("_id") @db.ObjectId
+  ORDER_ID          String             @unique
+  Customer_Master   Customer_Master    @relation(fields: [CUSTOMER_ID], references: [HAPLID])
+  Product_Catalogue Product_Catalogue? @relation(fields: [PRODUCT_ID], references: [HAPLID])
+
+  Service_Catalogue_New Service_Catalogue_New? @relation(fields: [PRODUCT_ID], references: [HAPLID])
+
+  CUSTOMER_ID                String
+  PRODUCT_ID                 String
+  PRODUCT_NAME               String
+  SEQUENCING_TYPE            String
+  SEQUENCING_APPLICATION     String
+  NUMBER_OF_SAMPLES          Int
+  PER_SAMPLE_DATA            Int
+  CURRENT_STATUS             String
   PROPOSED_TRANSACTION_VALUE Int?
+  PAYMENT_TERMS              Payment_Terms?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @default(now())
+  Order_Sample_Info          Order_Sample_Info[]
+  Order_Shipment_Info        Order_Shipment_Info?
+  Order_Event_log            Order_Event_log[]
+  Order_Payment_Info         Order_Payment_Info?
+  Order_Invoice              Order_Invoice?
+  Sample_Lab_Event_log       Sample_Lab_Event_log[]
+  Order_Receipt              Order_Receipt[]
+  Order_Tag_Relation         Order_Tag_Relation[]
+  Order_Checkout_Info        Order_Checkout_Info?
+  Sample_Lab_Event_log_Copy  Sample_Lab_Event_log_Copy[]
+  // Order_Receipt              Order_Receipt[]
 
-  CUSTOMER_ID   String
-  CUSTOMER_NAME String
+  @@index([PRODUCT_NAME])
+  @@index([createdAt, id])
+  @@index([CUSTOMER_ID])
+  @@map("Order_Basic_Info") // table name in the database 
+}
 
-  PATIENT_ID   String
-  PATIENT_NAME String
+model Order_Tag_Relation {
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  Tag_Master       Tag_Master        @relation(fields: [TAG], references: [TAG])
+  TAG              String
+  Order_Basic_Info Order_Basic_Info? @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID         String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now())
 
-  REF_DOCTOR_ID   String
-  REF_DOCTOR_NAME String
+  @@map("Order_Tag_Relation") // table name in the database 
+}
 
-  ORGANISATION_ID   String
-  ORGANISATION_NAME String
+model Order_Sample_Info {
+  id                         String                       @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID                     String                       @unique
+  Order_Basic_Info           Order_Basic_Info             @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID                   String
+  Customer_Master            Customer_Master              @relation(fields: [CUSTOMER_ID], references: [HAPLID])
+  CUSTOMER_ID                String
+  Patient_Master             Patient_Master?              @relation(fields: [PATIENT_ID], references: [PATIENT_ID])
+  PATIENT_ID                 String
+  SAMPLE_NAME                String
+  SOURCE_ORGANIZATION_ID     String?                      @db.ObjectId
+  SOURCE_ORGANIZATION_NAME   String?
+  INTIMATION_HAPL_ID         String?
+  SALESSPOC_EMAIL            String?
+  SAMPLE_ID                  String                       @unique
+  SAMPLE_BARCODE             String?
+  SAMPLE_TYPE                String
+  SPECIMEN_TYPE              String
+  SPECIMEN_CONTAINER         String
+  SPECIMEN_WEIGHT            String
+  SPECIMEN_VOLUME            String
+  QUBIT_CONCENTRATION        Int
+  VOLUME                     Int
+  FRAGMENT_SIZE              Int
+  READ_LENGTH                Int
+  i5_INDEX                   String
+  i7_INDEX                   String
+  SEQUENCING_TYPE            String
+  SEQUENCING_APP             String
+  AGE                        String
+  GENDER                     String
+  DATA_PROCESSING            String
+  DATA_OUTPUT                Int
+  LATITUDE                   Float
+  LONGITUDE                  Float
+  TAT                        String
+  CURRENT_STATUS             String
+  LOCATION_ADMIN_ID          String?
+  Location_Admin             Location_Admin?              @relation(fields: [LOCATION_ADMIN_ID], references: [id])
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime                     @default(now())
+  Sample_Event_log           Sample_Event_log[]
+  Sample_Lab_Event_log       Sample_Lab_Event_log[]
+  Sample_Logistic_Assignment Sample_Logistic_Assignment[]
+  Sample_Lab_Assignment      Sample_Lab_Assignment[]
+  Sample_Run_Assignment      Sample_Run_Assignment[]
+  Location_Samples           Location_Samples[]
+  Sample_Tag_Relation        Sample_Tag_Relation[]
+  Sample_Attachment          Sample_Attachment[]
+  Upstream_Patient_Master    Upstream_Patient_Master[]
+  Sample_Lab_Event_log_Copy  Sample_Lab_Event_log_Copy[]
 
-  SALESSPOC_ID       String
-  SALESSPOC_NAME     String
-  INTIMATION_HAPL_ID String?
+  invoiced   Boolean?  @default(false)
+  invoicedAt DateTime?
+  invoiceRef String?
 
-  PAYMENT_ID            String
+  @@index([INTIMATION_HAPL_ID])
+  @@index([ORDER_ID])
+  @@index([CURRENT_STATUS])
+  @@index([createdAt])
+  @@index([PATIENT_ID])
+  @@map("Order_Sample_Info") // table name in the database 
+}
+
+model Sample_Attachment {
+  id                     String                   @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID                 String                   @unique
+  Order_Sample_Info      Order_Sample_Info        @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID              String
+  CATEGORY               String
+  FILE_NAME              String
+  FILE_EXTENSION         String
+  FILE_SIZE_IN_BYTE      String
+  S3_LOCATION            String
+  SIGNED_URL             String
+  BASE64DATA             String
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @default(now())
+  Sample_Attachment_Data Sample_Attachment_Data[]
+
+  @@map("Sample_Attachment") // table name in the database 
+}
+
+model Sample_Attachment_Data {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID            String            @unique
+  Sample_Attachment Sample_Attachment @relation(fields: [ATTACHMENT_ID], references: [HAPLID])
+  ATTACHMENT_ID     String
+  FORM_DATA         Json
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+
+  @@map("Sample_Attachment_Data") // table name in the database 
+}
+
+model Sample_Tag_Relation {
+  id                String             @id @default(auto()) @map("_id") @db.ObjectId
+  Tag_Master        Tag_Master         @relation(fields: [TAG], references: [TAG])
+  TAG               String
+  Order_Sample_Info Order_Sample_Info? @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID         String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now())
+
+  @@map("Sample_Tag_Relation") // table name in the database 
+}
+
+model Order_Shipment_Info {
+  id                       String           @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Basic_Info         Order_Basic_Info @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID                 String           @unique
+  SHIPMENT_TRACKING_NUMBER String           @unique
+  SELF_USERNAME            String
+  SELF_USER_CONTACT        String
+  SELF_USER_EMAIL          String
+  COURIER_TYPE             String
+  NOTE                     String
+  SHIPMENT_CONTACT         String
+  SHIPMENT_EMAIL           String
+  SAMPLE_SHIPMENT          String
+  SAMPLE_SHIPMENT_DATE     DateTime
+  SAMPLE_SHIPMENT_SLOT     String
+  ADDRESS1                 String
+  ADDRESS2                 String
+  CITY                     String
+  STATE                    String
+  PIN                      String
+  DISTRICT                 String
+  COUNTRY                  String
+  FULL_ADDRESS             String
+  LATITUDE                 Float
+  LONGITUDE                Float
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @default(now())
+
+  @@map("Order_Shipment_Info") // table name in the database 
+}
+
+model Order_Payment_Info {
+  id                    String           @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Basic_Info      Order_Basic_Info @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID              String           @unique
+  PAYMENT_ID            String           @unique
   INVOICE_NUMBER        String
-  SAMPLE_PRICE          Float
-  PAYMENT_TYPE          String
-  OFFERS                String
+  PAYMENT_MODE          String
   PAYMENT_AMOUNT        Float
   BILLING_AMOUNT        Float
+  SHIPPING_CHARGE       Float
+  TAX_AMOUNT            Float
+  TAX_TYPE              String
+  DISCOUNT_AMOUNT       Float
+  DISCOUNT_TYPE         String
   AMOUNT_COLLECTED      Float
   AMOUNT_COLLECTED_DATE DateTime
+  IS_PAID               String
+  COUPON_CODE           String
+  OFFER                 String
+  ISSUE_DATE            DateTime
+  DUE_DATE              DateTime
+  CURRENCY              String
+  BANKING_INFO          Json
+  PAYMENT_TERM          String
+  ADDITIONAL_NOTE       String
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @default(now())
 
-  BATCH_ID String
+  @@map("Order_Payment_Info") // table name in the database 
+}
 
+model Order_Invoice {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Basic_Info Order_Basic_Info @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID         String           @unique
+  INVOICE_DATA     Json
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @default(now())
+
+  @@map("Order_Invoice") // table name in the database 
+}
+
+model Order_Receipt {
+  id                      String           @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Basic_Info        Order_Basic_Info @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  INVOICE_NUMBER          String?          @unique
+  PROFORMA_INVOICE_NUMBER String?
+  RECEIPT_NUMBER          String?
+
+  TAX_INVOICE_NUMBER      String?
+  TAX_INVOICE_NUMBER_DATE DateTime?
+
+  RECEIPT_NUMBER_DATE   DateTime?
+  PROFORMA_INVOICE_DATE DateTime?
+  INVOICE_DATE          DateTime?
+  ORDER_ID              String
+  RECEIPT_DATA          Json
+  STATUS                InvoiceStatus @default(PROFORMA)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @default(now())
+
+  order_Basic_InfoId String? @db.ObjectId
+
+  @@index([ORDER_ID])
+  @@map("Order_Receipt")
+}
+
+model B2BInvoice {
+  id                      String  @id @default(auto()) @map("_id") @db.ObjectId
+  CUSTOMER_ID             String
+  INVOICE_NUMBER          String  @unique
+  PROFORMA_INVOICE_NUMBER String?
+  RECEIPT_NUMBER          String?
+
+  TAX_INVOICE_NUMBER      String?
+  TAX_INVOICE_NUMBER_DATE DateTime?
+
+  RECEIPT_NUMBER_DATE   DateTime?
+  PROFORMA_INVOICE_DATE DateTime?
+  INVOICE_DATE          DateTime?
+
+  RECEIPT_DATA Json
+  STATUS       InvoiceStatus @default(PROFORMA)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now())
+
+  Customer_Master Customer_Master @relation(fields: [CUSTOMER_ID], references: [id])
+
+  @@index([CUSTOMER_ID])
+}
+
+enum InvoiceStatus {
+  PROFORMA
+  RECEIPT
+  TAX_INVOICE
+}
+
+model Order_Checkout_Info {
+  id                     String           @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Basic_Info       Order_Basic_Info @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID               String           @unique
+  PAYMENT_ID             String           @unique
+  INVOICE_NUMBER         String
+  EXTERNAL_ORDER_ID      String           @unique
+  ENTITY                 String
+  AMOUNT                 Float
+  AMOUNT_PAID            Float
+  AMOUNT_DUE             Float
+  CURRENCY               String
+  RECEIPT                String
+  OFFER_ID               String
+  STATUS                 String
+  ATTEMPTS               Float
+  ADDITIONAL_NOTE        String
+  OTHER_INFO             Json
+  POST_PAYMENT_ID        String
+  POST_PAYMENT_SIGNATURE String
+  POST_PAYMENT_ORDER_ID  String
+
+  createdAt DateTime
+  updatedAt DateTime @default(now())
+
+  @@map("Order_Checkout_Info") // table name in the database 
+}
+
+model Sample_Logistic_Assignment {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Sample_Info Order_Sample_Info @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID         String
+  Logistic_Master   Logistic_Master   @relation(fields: [USER_ID], references: [HAPLID])
+  USER_ID           String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+
+  @@map("Sample_Logistic_Assignment") // table name in the database 
+}
+
+model Location_Samples {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Sample_Info Order_Sample_Info @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID         String
+  User              User              @relation(fields: [USER_ID], references: [id])
+  USER_ID           String
+  LOCATION_ID       String
+  LOCATION_NAME     String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+
+  @@map("Location_Samples") // table name in the database 
+}
+
+model Sample_Lab_Assignment {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Sample_Info Order_Sample_Info @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID         String
+  Lab_User_Master   Lab_User_Master   @relation(fields: [USER_ID], references: [HAPLID])
+  USER_ID           String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+
+  @@map("Sample_Lab_Assignment") // table name in the database 
+}
+
+model Order_Event_log {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Basic_Info Order_Basic_Info @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID         String
+  EVENT_CONTEXT    Json
+  ACTION_TAKEN_BY  String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @default(now())
+
+  @@map("Order_Event_log") // table name in the database 
+}
+
+model Sample_Event_log {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Sample_Info Order_Sample_Info @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID         String
+  EVENT_CONTEXT     Json
+  ACTION_TAKEN_BY   String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+
+  @@map("Sample_Event_log") // table name in the database 
+}
+
+model Sample_Lab_Event_log {
+  id                               String            @id @default(auto()) @map("_id") @db.ObjectId
+  Customer_Master                  Customer_Master   @relation(fields: [CUSTOMER_ID], references: [HAPLID])
+  CUSTOMER_ID                      String
+  Order_Basic_Info                 Order_Basic_Info  @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID                         String
+  Order_Sample_Info                Order_Sample_Info @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID                        String
+  Patient_Master                   Patient_Master?   @relation(fields: [PATIENT_ID], references: [PATIENT_ID])
+  PATIENT_ID                       String
+  TAT                              String
+  SEQ_ORDER_ID                     String
+  HAPL_PRODUCT_ID                  String
+  SUB_PRODUCT_ID                   String
+  BATCH_ID                         String
+  BATCH_NUMBER                     String
+  CLIENT_ID                        String
+  UPSTREAM_PARTNER_CODE            String
+  UPSTREAM_SEQUENCING_PARTNER_CODE String
+  SAMPLE_CODE                      String
+  BARCODE_ID                       String
+  STUDY_TYPE                       String
+  FLOWCELL_ID                      String
+  PRIMER                           String
+  SAMPLE_NAME                      String
+  LIBRARY_KIT_ID                   String
+  BARCODING_KIT_ID                 String
+  DEVICE_ID                        String
+  SAMPLE_TEMP                      String
+  LIBRARY_TYPE                     String
+  SAMPLE_SOURCE                    String
+  RUN_ID                           String
+  INVOICE_NUMBER                   String
+  SAMPLE_PRICE                     Float
+  PAYMENT_DATE                     DateTime
+  PAYMENT_DONE                     Boolean
+  PAYMENT_STATUS                   String
+  PAYMENT_COMMENTS                 String
+
+  Logistic_Master  Logistic_Master? @relation(fields: [LOGISTIC_USER_ID], references: [HAPLID])
   LOGISTIC_USER_ID String
-  LAB_USER_ID      String
+
+  Lab_User_Master Lab_User_Master? @relation(fields: [LAB_USER_ID], references: [HAPLID])
+  LAB_USER_ID     String
 
   SAMPLE_ASSIGNMENT_DATE     DateTime
   SAMPLE_ASSIGNMENT_DONE_BY  String
   SAMPLE_ASSIGNMENT_STATUS   String
   SAMPLE_ASSIGNMENT_COMMENTS String
   SAMPLE_ASSIGNMENT_TIME     String
-  SITE_NAME                  String?
 
   REGISTRATION_DATE     DateTime
   REGISTRATION_DONE_BY  String
@@ -366,119 +1108,164 @@ model Sample_Details {
   REPORT_GENERATION_TIME            String
   REPORT_GENERATION_TIME_IN_SECONDS String
 
-  REPORT_SHARING_DATE            DateTime?
+  REPORT_SHARING_DATE            DateTime
   REPORT_SHARING_STATUS          String
   REPORT_SHARING_COMMENTS        String
   REPORT_SHARING_DONE_BY         String
   REPORT_SHARING_TIME            String
   REPORT_SHARING_TIME_IN_SECONDS String
 
+  UPSTREAM_POSTQC_DATE            DateTime
+  UPSTREAM_POSTQC_DONE_BY         String
+  UPSTREAM_POSTQC_STATUS          String
+  UPSTREAM_POSTQC_COMMENTS        String
+  UPSTREAM_POSTQC_TIME            String
+  UPSTREAM_POSTQC_TIME_IN_SECONDS String
+  UPSTREAM_POSTQC_RECOMMENDATION  String
+
+  DOWNSTREAM_POSTQC_DATE            DateTime
+  DOWNSTREAM_POSTQC_DONE_BY         String
+  DOWNSTREAM_POSTQC_STATUS          String
+  DOWNSTREAM_POSTQC_COMMENTS        String
+  DOWNSTREAM_POSTQC_TIME            String
+  DOWNSTREAM_POSTQC_TIME_IN_SECONDS String
+  DOWNSTREAM_POSTQC_RECOMMENDATION  String
+
   FINAL_SAMPLE_STATUS String
   REMARKS             String
-  TOTAL_TAT_IN_HRS    Float
-  DELAY_STATUS        String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @default(now())
+  Sample_TAT          Sample_TAT[]
 
-  CITY         String
-  FINAL_STATUS String
-  PRODUCT_ID   String
-  PRODUCT      String
-
-  USER_ID       String?
-  MANAGER_ID    String?
-  MANAGER_EMAIL String?
-  USER_EMAIL    String?
-
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @default(now())
-  Payment_Information Payment_Information[]
-  Customer_Master     Customer_Master?      @relation(fields: [customer_MasterId], references: [id])
-  customer_MasterId   String?               @db.ObjectId
-
-  @@map("Sample_Details") // table name in the database 
+  @@map("Sample_Lab_Event_log") // table name in the database 
 }
 
-model Payment_Information {
-  id                    String         @id @default(auto()) @map("_id") @db.ObjectId
-  HAPLID                String         @unique
-  Sample_Details        Sample_Details @relation(fields: [SAMPLE_ID], references: [id])
-  SAMPLE_ID             String
-  IS_PAID               String
-  PAYMENT_AMOUNT        Float
-  BILLING_AMOUNT        Float
-  AMOUNT_COLLECTED      Float
-  AMOUNT_COLLECTED_DATE DateTime
-  PAYMENT_TYPE          String
-  COUPON_CODE           String
-  OFFER                 String
-  SALESSPOC_ID          String
-  REF_DOCTOR_ID         String
-  HOSPITAL_ID           String
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @default(now())
+model Sample_TAT {
+  id                          String                     @id @default(auto()) @map("_id") @db.ObjectId
+  Sample_Lab_Event_log        Sample_Lab_Event_log       @relation(fields: [SAMPLE_LAB_ID], references: [id])
+  SAMPLE_LAB_ID               String
+  FROM                        String
+  TO                          String
+  ETA                         String
+  IN_SECONDS                  String
+  LEFT                        String
+  STATUS                      String
+  NOTE                        String
+  createdAt                   DateTime                   @default(now())
+  updatedAt                   DateTime                   @default(now())
+  Sample_Lab_Event_log_Copy   Sample_Lab_Event_log_Copy? @relation(fields: [sample_Lab_Event_log_CopyId], references: [id])
+  sample_Lab_Event_log_CopyId String?                    @db.ObjectId
 
-  @@map("Payment_Information") // table name in the database 
+  @@map("Sample_TAT") // table name in the database 
 }
 
-enum VisitStatus {
-  PENDING
-  COMPLETED
-  CANCELLED
-  AD_HOC
+model Run_Master {
+  id                    String                  @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID                String                  @unique
+  RUN_ID                String
+  RUN_NAME              String
+  RUN_DESCRIPTION       String
+  RUN_CAPACITY_IN_GB    Int
+  Lab_User_Master       Lab_User_Master         @relation(fields: [RUN_CREATED_BY], references: [HAPLID])
+  RUN_CREATED_BY        String
+  STATUS                String
+  SAMPLE_TYPE           String
+  SEQUENCING_APP        String
+  READ_LENGTH           Int
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @default(now())
+  Sample_Run_Assignment Sample_Run_Assignment[]
+  Run_Execution         Run_Execution[]
+  Run_Tag_Relation      Run_Tag_Relation[]
+
+  @@map("Run_Master") // table name in the database 
 }
 
-model Visit_Information {
-  id           String  @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String? @db.ObjectId
-  ManagerId    String?
-  ManagerEmail String?
-  UserEmail    String?
-  UserDetails  User?   @relation(name: "UserDetailsRelation", fields: [userId], references: [id])
+model Run_Tag_Relation {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  Tag_Master Tag_Master  @relation(fields: [TAG], references: [TAG])
+  TAG        String
+  Run_Master Run_Master? @relation(fields: [RUN_ID], references: [HAPLID])
+  RUN_ID     String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @default(now())
 
-  HAPLID                   String         @unique
-  STATUS                   VisitStatus?   @default(PENDING)
-  EMAIL                    String
-  TODAY_VISIT_COUNT        Float
-  VISIT_TYPE               String
-  CUSTOMER_TYPE            Customer_Type?
-  DOCTOR_NAME              String
-  HOSPITAL_NAME            String
-  YOUR_NAME                String
-  ORGANIZATION_ID          String?        @db.ObjectId
-  CUSTOMER_ID              String?        @db.ObjectId
-  REPORTING_MANAGER_NAME   String
-  AREA_ALLOTED             String?
-  ADDRESS_CLIENT           String?
-  REPORT_TYPE              String
-  CLIENT_NAME              String
-  CLIENT_EMAIL             String
-  CLIENT_PHONE             String
-  PINCODE_CLIENT           Float
-  SIZE_OF_CLIENT           Float?
-  ASSOCIATION_TYPE         String?
-  NATURE_OF_CLIENT         String?
-  CLIENT                   String
-  TAGS                     String[]
-  NAME_OF_PERSON_MET       String
-  DESIGNATION_OF_PERSON    String
-  QUESTIONS_BY_CLIENT      String
-  NEXT_STEPS               String
-  VISIT_OR_CALL_HIGHLIGHTS String
-  INITIAL_MARKETING_GIVEN  String?
-  PLANNED_IN_DATE_TIME     DateTime?
-  PLANNED_OUT_DATE_TIME    DateTime?
-  IN_DATETIME              DateTime
-  OUT_DATETIME             DateTime
-  IN_DATE                  String
-  OUT_DATE                 String
-  IN_TIME                  String
-  OUT_TIME                 String
-  LATLNG                   String
-  GEOLOCATION              String
-  CAPTURED_DATE            String
-  createdAt                DateTime       @default(now())
-  updatedAt                DateTime       @default(now())
+  @@map("Run_Tag_Relation") // table name in the database 
+}
 
-  @@map("Visit_Information")
+model Sample_Run_Assignment {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  Order_Sample_Info Order_Sample_Info @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID         String
+  Run_Master        Run_Master        @relation(fields: [RUN_ID], references: [HAPLID])
+  RUN_ID            String
+  Lab_User_Master   Lab_User_Master   @relation(fields: [ASSIGNED_BY], references: [HAPLID])
+  ASSIGNED_BY       String
+  CURRENT_STATUS    String
+  BATCH_ID          String
+  STUDY_TYPE        String
+  FLOWCELL_ID       String
+  PRIMER            String
+  SEQ_ORDER_ID      String
+  SAMPLE_LAB_ID     String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+
+  @@map("Sample_Run_Assignment") // table name in the database 
+}
+
+model Run_Execution {
+  id                 String          @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID             String          @unique
+  Run_Master         Run_Master      @relation(fields: [RUN_ID], references: [HAPLID])
+  RUN_ID             String
+  RUN_CREATED        Boolean
+  RUN_CREATED_AT     DateTime
+  RUN_SCHEDULED      Boolean
+  RUN_SCHEDULED_AT   DateTime
+  RUN_STARTED        Boolean
+  RUN_STARTED_AT     DateTime
+  RUN_START_TIME     String
+  RUN_ETA            String
+  RUN_COMPLETED      Boolean
+  RUN_COMPLETED_AT   DateTime
+  RUN_COMPLETED_TIME String
+  Location_Admin     Location_Admin? @relation(fields: [LOCATION_ID], references: [id])
+  LOCATION_ID        String
+  NOTE               String
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @default(now())
+
+  @@map("Run_Execution") // table name in the database 
+}
+
+model Config {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  TITLE     String
+  SCHEMA    Json
+  IS_ACTIVE Boolean
+  VALUE     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@map("Config") // table name in the database 
+}
+
+model Service_Catalogue {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID      String @unique
+  ITEM_ID     String
+  SAMPLE_TYPE String
+  BANNER_IMG  String
+  CARD_IMG    String
+  DESCRIPTION String
+  SCHEMA      Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@map("Service_Catalogue") // table name in the database 
 }
 
 model Service_Catalogue_New {
@@ -503,9 +1290,9 @@ model Service_Catalogue_New {
   HSN_CODE            String?
   PRODUCT_CATEGORY    String?
 
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @default(now())
-  Intimation Intimation[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now())
+  Order_Basic_Info Order_Basic_Info[]
 
   @@map("Service_Catalogue_New") // table name in the database 
 }
@@ -525,224 +1312,279 @@ model Product_Catalogue {
   SCHEMA              Json
   TAT                 String
   CODE                String
-  BRAND               String?
-  ACTIVE              Int?
   GST_RATE            Float   @default(0.0)
   IS_GST_EXEMPTED     Boolean @default(false)
   HSN_CODE            String?
   PRODUCT_CATEGORY    String?
+  BRAND               String?
+  ACTIVE              Int?
 
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @default(now())
-  Intimation Intimation[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now())
+  Order_Basic_Info Order_Basic_Info[]
 
   @@map("Product_Catalogue") // table name in the database 
 }
 
-model Schema {
-  id                              String @id @default(auto()) @map("_id") @db.ObjectId
-  INTIMATION_FORM_SCHEMA          Json
-  INTIMATION_UI_SCHEMA            Json
-  VISIT_FORM_SCHEMA               Json
-  VISIT_UI_SCHEMA                 Json
+model Coupon_Master {
+  id                  String                @id @default(auto()) @map("_id") @db.ObjectId
+  HAPLID              String                @unique
+  COUPON_CODE         String                @unique
+  TITLE               String
+  DESCRIPTION         String
+  NOTE                String
+  OFFER               String
+  IS_ACTIVE           Boolean
+  OTHER_INFO          Json
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now())
+  Customer_Coupon_Map Customer_Coupon_Map[]
 
-  CREATE_ORGANIZATION_FORM_SCHEMA Json
-  CREATE_ORGANIZATION_UI_SCHEMA   Json
-
-  PLAN_VISIT_SCHEMA    Json
-  PLAN_VISIT_UI_SCHEMA Json
+  @@map("Coupon_Master") // table name in the database 
 }
 
-enum Customer_Type {
-  B2B
-  B2D
-  B2C
+model Customer_Coupon_Map {
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  Coupon_Master   Coupon_Master?   @relation(fields: [COUPON_ROW_ID], references: [id])
+  COUPON_ROW_ID   String
+  Customer_Master Customer_Master? @relation(fields: [CUSTOMER_ROW_ID], references: [HAPLID])
+  CUSTOMER_ROW_ID String
+  STATUS          String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now())
+
+  @@map("Customer_Coupon_Map") // table name in the database 
 }
 
-enum Organization_Category {
-  HOSPITAL
-  RESEARCH_INSTITUTE
-  LAB
-  OTHER
+model Sample_Lab_Event_log_Copy {
+  id                               String            @id @default(auto()) @map("_id") @db.ObjectId
+  Customer_Master                  Customer_Master   @relation(fields: [CUSTOMER_ID], references: [HAPLID])
+  CUSTOMER_ID                      String
+  Order_Basic_Info                 Order_Basic_Info  @relation(fields: [ORDER_ID], references: [ORDER_ID])
+  ORDER_ID                         String
+  Order_Sample_Info                Order_Sample_Info @relation(fields: [SAMPLE_ID], references: [HAPLID])
+  SAMPLE_ID                        String
+  Patient_Master                   Patient_Master?   @relation(fields: [PATIENT_ID], references: [PATIENT_ID])
+  PATIENT_ID                       String
+  TAT                              String
+  SEQ_ORDER_ID                     String
+  HAPL_PRODUCT_ID                  String
+  SUB_PRODUCT_ID                   String
+  BATCH_ID                         String
+  BATCH_NUMBER                     String
+  CLIENT_ID                        String
+  UPSTREAM_PARTNER_CODE            String
+  UPSTREAM_SEQUENCING_PARTNER_CODE String
+  SAMPLE_CODE                      String
+  BARCODE_ID                       String
+  STUDY_TYPE                       String
+  FLOWCELL_ID                      String
+  PRIMER                           String
+  SAMPLE_NAME                      String
+  LIBRARY_KIT_ID                   String
+  BARCODING_KIT_ID                 String
+  DEVICE_ID                        String
+  SAMPLE_TEMP                      String
+  LIBRARY_TYPE                     String
+  SAMPLE_SOURCE                    String
+  RUN_ID                           String
+  INVOICE_NUMBER                   String
+  SAMPLE_PRICE                     Float
+  PAYMENT_DATE                     DateTime
+  PAYMENT_DONE                     Boolean
+  PAYMENT_STATUS                   String
+  PAYMENT_COMMENTS                 String
+
+  Logistic_Master  Logistic_Master? @relation(fields: [LOGISTIC_USER_ID], references: [HAPLID])
+  LOGISTIC_USER_ID String
+
+  Lab_User_Master Lab_User_Master? @relation(fields: [LAB_USER_ID], references: [HAPLID])
+  LAB_USER_ID     String
+
+  SAMPLE_ASSIGNMENT_DATE     DateTime
+  SAMPLE_ASSIGNMENT_DONE_BY  String
+  SAMPLE_ASSIGNMENT_STATUS   String
+  SAMPLE_ASSIGNMENT_COMMENTS String
+  SAMPLE_ASSIGNMENT_TIME     String
+
+  REGISTRATION_DATE     DateTime
+  REGISTRATION_DONE_BY  String
+  REGISTRATION_STATUS   String
+  REGISTRATION_COMMENTS String
+  REGISTRATION_TIME     String
+
+  COLLECTION_DATE            DateTime
+  COLLECTION_DONE_BY         String
+  COLLECTION_STATUS          String
+  COLLECTION_COMMENTS        String
+  COLLECTION_TIME            String
+  COLLECTION_TIME_IN_SECONDS String
+
+  PACKAGING_DATE            DateTime
+  PACKAGING_DONE_BY         String
+  PACKAGING_STATUS          String
+  PACKAGING_COMMENTS        String
+  PACKAGING_TIME            String
+  PACKAGING_TIME_IN_SECONDS String
+
+  SHIPMENT_DATE            DateTime
+  SHIPMENT_DONE_BY         String
+  SHIPMENT_STATUS          String
+  SHIPMENT_COMMENTS        String
+  SHIPMENT_TIME            String
+  SHIPMENT_TIME_IN_SECONDS String
+  SHIPMENT_VIA             String
+  SHIPMENT_TRACKING_ID     String
+
+  DELIVERED_DATE     DateTime
+  DELIVERED_STATUS   String
+  DELIVERED_COMMENTS String
+  DELIVERED_TIME     String
+
+  RECEIPT_DATE            DateTime
+  RECEIPT_DONE_BY         String
+  RECEIPT_STATUS          String
+  RECEIPT_COMMENTS        String
+  RECEIPT_TIME            String
+  RECEIPT_TIME_IN_SECONDS String
+
+  SAMPLE_ACKNOWLEDGE_DATE            DateTime
+  SAMPLE_ACKNOWLEDGE_DONE_BY         String
+  SAMPLE_ACKNOWLEDGE_STATUS          String
+  SAMPLE_ACKNOWLEDGE_COMMENTS        String
+  SAMPLE_ACKNOWLEDGE_TIME            String
+  SAMPLE_ACKNOWLEDGE_TIME_IN_SECONDS String
+
+  UPSTREAM_POSTQC_DATE            DateTime
+  UPSTREAM_POSTQC_DONE_BY         String
+  UPSTREAM_POSTQC_STATUS          String
+  UPSTREAM_POSTQC_COMMENTS        String
+  UPSTREAM_POSTQC_TIME            String
+  UPSTREAM_POSTQC_TIME_IN_SECONDS String
+  UPSTREAM_POSTQC_RECOMMENDATION  String
+
+  DOWNSTREAM_POSTQC_DATE            DateTime
+  DOWNSTREAM_POSTQC_DONE_BY         String
+  DOWNSTREAM_POSTQC_STATUS          String
+  DOWNSTREAM_POSTQC_COMMENTS        String
+  DOWNSTREAM_POSTQC_TIME            String
+  DOWNSTREAM_POSTQC_TIME_IN_SECONDS String
+  DOWNSTREAM_POSTQC_RECOMMENDATION  String
+
+  DNA_EXTRACTION_DATE            DateTime
+  DNA_EXTRACTION_BY              String
+  DNA_EXTRACTION_STATUS          String
+  DNA_EXTRACTION_COMMENTS        String
+  DNA_EXTRACTION_TIME            String
+  DNA_EXTRACTION_TIME_IN_SECONDS String
+  DNA_CONCENTRATION              String
+  PURIFIED_DNA_CONCENTRATION     String
+  NORMALIZED_DNA_CONCENTRATION   String
+
+  DNA_QC_STATUS          String
+  DNA_QC_STATUS_DONE_BY  String
+  DNA_QC_STATUS_COMMENTS String
+  DNA_QC_DATE            DateTime
+  DNA_QC_TIME            String
+  DNA_QC_TIME_IN_SECONDS String
+
+  LIBERARY_PREPARATION_DATE           DateTime
+  LIBERARY_PREPARATION_DONE_BY        String
+  LIBRARY_PREPARATION_STATUS          String
+  LIBRARY_PREPARATION_STATUS_COMMENTS String
+  LIBRARY_PREPARATION_TIME            String
+  LIBRARY_PREPERATION_TIME_IN_SECONDS String
+  LIBRARY_CONCENTRATION               String
+  FLONGLE_SERIAL_NUMBER               String
+  KIT_DETAILS                         String
+
+  LIB_QC_DATE            DateTime
+  LIB_QC_DONE_BY         String
+  LIB_QC_STATUS          String
+  LIB_QC_STATUS_COMMENTS String
+  LIB_QC_TIME            String
+  LIB_QC_TIME_IN_SECONDS String
+
+  SEQUENCE_RUN_DATE              DateTime
+  SEQUENCING_DONE_BY             String
+  SEQUENCE_RUN_STATUS            String
+  SEQUENCE_RUN_STATUS_COMMENTS   String
+  SEQUENCE_RUN_TIME              String
+  TOTAL_ANALYSIS_TIME_IN_SECONDS String
+  VOLUME_USED                    String
+
+  VALIDATION_OF_SEQUENCE_DATA_DATE            DateTime
+  VALIDATION_OF_SEQUENCE_DATA_DONE_BY         String
+  VALIDATION_OF_SEQUENCE_DATA_STATUS          String
+  VALIDATION_OF_SEQUENCE_DATA_STATUS_COMMENTS String
+  VALIDATION_OF_SEQUENCE_DATA_TIME            String
+  VALIDATION_OF_SEQUENCE_DATA_TIME_IN_SECONDS String
+
+  IS_BED_TOOL_PASS         String
+  BED_TOOL_COMMENTS        String
+  BED_TOOL_DATE            DateTime
+  BED_TOOL_DONE_BY         String
+  BED_TOOL_TIME            String
+  BED_TOOL_TIME_IN_SECONDS String
+
+  SECONDARY_ANALYSIS_DATE            DateTime
+  SECONDARY_ANALYSIS_STATUS          String
+  SECONDARY_ANALYSIS_DONE_BY         String
+  SECONDARY_ANALYSIS_COMMENTS        String
+  SECONDARY_ANALYSIS_TIME            String
+  SECONDARY_ANALYSIS_TIME_IN_SECONDS String
+
+  REPORT_GENERATION_DATE            DateTime
+  REPORT_GENERATION_STATUS          String
+  REPORT_GENERATION_DONE_BY         String
+  REPORT_GENERATION_STATUS_COMMENTS String
+  REPORT_GENERATION_TIME            String
+  REPORT_GENERATION_TIME_IN_SECONDS String
+
+  REPORT_SHARING_DATE            DateTime
+  REPORT_SHARING_STATUS          String
+  REPORT_SHARING_COMMENTS        String
+  REPORT_SHARING_DONE_BY         String
+  REPORT_SHARING_TIME            String
+  REPORT_SHARING_TIME_IN_SECONDS String
+
+  FINAL_SAMPLE_STATUS String
+  REMARKS             String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @default(now())
+  Sample_TAT          Sample_TAT[]
+
+  @@map("Sample_Lab_Event_log_Copy") // table name in the database 
 }
 
-enum Payment_Terms {
-  AS_PER_MOU
-  ONLINE
-  CASH
-  FOC
-}
-
-model Intimation {
-  id                         String                 @id @default(auto()) @map("_id") @db.ObjectId
-  INTIMATION_HAPL_ID         String                 @unique
-  userId                     String?                @db.ObjectId
-  PRODUCT_ID                 String?
-  SERVICE_ID                 String?
-  PRODUCT_TYPE               String
-  SALES_PERSON_ID            String
-  NOTE                       String?
-  STATUS                     String?                @default("Pending")
-  data                       Json
-  ManagerId                  String?
-  ManagerEmail               String?
-  UserEmail                  String?
-  UserDetails                User?                  @relation(name: "UserDetailsRelation", fields: [userId], references: [id])
-  Sales_Person_Master        User?                  @relation(name: "SalesPersonRelation", fields: [SALES_PERSON_ID], references: [id])
-  Service_Catalogue_New      Service_Catalogue_New? @relation(fields: [SERVICE_ID], references: [HAPLID])
-  Product_Catalogue          Product_Catalogue?     @relation(fields: [PRODUCT_ID], references: [HAPLID])
-  CUSTOMER_TYPE              Customer_Type?
-  PAYMENT_TERMS              Payment_Terms?
-  PROPOSED_TRANSACTION_VALUE Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-}
-
-model Hospital {
-  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
-  CITY                String?
-  STATE               String
-  First_Name          String    @map("First_Name")
-  Last_Name           String    @map("Last_Name")
-  SPECIALIZATION      String
-  ORGID               String?   @map("ORGID")
-  HOSPITAL_NAME       String?   @map("HOSPITAL NAME")
-  ADDRESS_1           String    @map("ADDRESS_1")
-  ADDRESS_2           String?   @map("ADDRESS_2")
-  CITY__1             String    @map("CITY__1")
-  STATE__1            String    @map("STATE__1")
-  PINCODE             Int       @map("PINCODE")
-  DISTRICT            String    @map("DISTRICT")
-  COUNTRY             String    @map("COUNTRY")
-  ADDRESS             String    @map("ADDRESS")
-  EMAIL_ID            String?   @map("EMAIL ID")
-  CONTACT_NUMBER      Int?      @map("CONTACT NUMBER")
-  HOSPITAL_CODE       String?
-  HOSPITAL_OTHER_INFO String?
-  createdAt           DateTime? @default(now())
-  updatedAt           DateTime? @default(now())
-}
-
-model LocationData {
+model TRF {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  metadata  Json
+  sampleId  String   @unique
+  images    Image[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Tags {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("Tags")
-}
-
-model Organization_Master {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  ORGANIZATION_TYPE     Customer_Type
-  ORGANIZATION_CATEGORY Organization_Category
-  ORGANIZATION_NAME     String
-  ORGANIZATION_ADDRESS  Address
-  ORGANIZATION_EMAIL    String?
-  ORGANIZATION_GST_ID   String?
-  ORGANIZATION_PAN      String?
-
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  Customer  Customer[]
-}
-
-type Address {
-  ADDRESS_1         String
-  ADDRESS_2         String?
-  CITY              String
-  STATE             String
-  POSTAL_CODE       String
-  FORMATTED_ADDRESS String
-  COUNTRY           String? @default("India")
-}
-
-model Customer {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  CUSTOMER_TYPE Customer_Type
-  // CUSTOMER_CATEGORY Organization_Category
-  PROFESSION    Profession
-
-  FIRST_NAME            String
-  LAST_NAME             String
-  DOCTOR_SPECIALIZATION String?
-  GENDER                Gender
-  CUSTOMER_ADDRESS      Address
-
-  CONTACT_NUMBER String?
-  EMAIL          String?
-
-  ORGANIZATION_ID String? @db.ObjectId
-
-  Organization_Master Organization_Master? @relation(fields: [ORGANIZATION_ID], references: [id])
-
+model Image {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  trfId     String
+  trf       TRF      @relation(fields: [trfId], references: [id])
+  s3Key     String
+  type      String
+  uuid      String   @unique
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
-}
+model DocumentSeries {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  documentType String
+  fiscalYear   String
+  month        String?
+  lastNumber   Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
 
-enum Profession {
-  DOCTOR
-  OTHER
-}
-
-// model VwUser {
-//   id             String   @id @default(auto()) @map("_id") @db.ObjectId
-//   username       String
-//   name           String
-//   email          String
-//   role           String
-//   hash           String
-//   salt           String
-//   password       String
-//   provider       String
-//   createdAt      DateTime
-//   updatedAt      DateTime
-//   managerId      String?  @db.ObjectId
-//   managerEmail   String?
-//   managersEmails String[]
-
-//   @@map("VwUser")
-// }
-
-model Hospital_2 {
-  id                  String        @id @default(auto()) @map("_id") @db.ObjectId
-  CITY                String?
-  STATE               String
-  First_Name          String        @map("First_Name")
-  Last_Name           String        @map("Last_Name")
-  SPECIALIZATION      String
-  ORGID               String?       @map("ORGID")
-  HOSPITAL_NAME       String?       @map("HOSPITAL NAME")
-  ADDRESS_1           String        @map("ADDRESS_1")
-  ADDRESS_2           String?       @map("ADDRESS_2")
-  CITY__1             String        @map("CITY__1")
-  STATE__1            String        @map("STATE__1")
-  PINCODE             Int           @map("PINCODE")
-  DISTRICT            String        @map("DISTRICT")
-  COUNTRY             String        @map("COUNTRY")
-  ADDRESS             String        @map("ADDRESS")
-  EMAIL_ID            String?       @map("EMAIL ID")
-  CONTACT_NUMBER      Int?          @map("CONTACT NUMBER")
-  HOSPITAL_CODE       String?
-  HOSPITAL_OTHER_INFO String?
-  CUSTOMER_TYPE       Customer_Type
-  createdAt           DateTime?     @default(now())
-  updatedAt           DateTime?     @default(now())
+  @@unique([documentType, fiscalYear], name: "docType_fy")
+  @@unique([documentType, fiscalYear, month], name: "docType_fy_month")
+  @@map("DocumentSeries")
 }
